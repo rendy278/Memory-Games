@@ -58,7 +58,7 @@ const GameContextProvider: React.FC<GameContextProviderProps> = ({
   const [gameOver, setGameOver] = useState(false);
   const [gameWon, setGameWon] = useState(false);
   const [isGameStarted, setIsGameStarted] = useState(false); // Initialize game state
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null); // Fix for NodeJS issue
   const [score, setScore] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 

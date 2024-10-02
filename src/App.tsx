@@ -11,6 +11,11 @@ const App: React.FC = () => {
   return (
     <GameContextProvider>
       <GameContent setIsModalOpen={setIsModalOpen} />
+      <StartModal
+        onStart={() => {}}
+        isModalOpen={isModalOpen}
+        closeModal={() => setIsModalOpen(false)}
+      />
     </GameContextProvider>
   );
 };
@@ -34,7 +39,7 @@ const GameContent: React.FC<{
       </div>
       <Overlay />
       <StartModal
-        isModalOpen={!isGameStarted} // Show the modal only when game hasn't started
+        isModalOpen={!isGameStarted} // Show the modal only when the game hasn't started
         onStart={handleStartGame}
         closeModal={() => setIsModalOpen(false)} // Close modal function
       />
