@@ -21,17 +21,15 @@ const StartModal: React.FC<StartModalProps> = ({
         <h1 className="text-3xl font-bold mb-4 text-amber-900">
           Start the Game
         </h1>
-        <div className="flex justify-center items-center gap-3 bg-sidebar-background bg-center bg-contain bg-no-repeat w-64 h-20 md:h-32">
-          <button
-            onClick={() => {
-              closeModal(); // Close modal first
-              onStart(); // Start the game logic after closing modal
-            }}
-            className="text-amber-900 md:text-2xl font-bold"
-          >
-            Start
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            closeModal(); // Close modal first
+            onStart(); // Start the game logic after closing modal
+          }}
+          className="flex justify-center items-center gap-3 bg-sidebar-background bg-center bg-contain bg-no-repeat w-64 h-20 md:h-32"
+        >
+          <p className="text-amber-900 md:text-2xl font-bold">Start</p>
+        </button>
         <h2 className="text-2xl font-bold mt-4 text-amber-900">
           Game Build By : Rendev
         </h2>
