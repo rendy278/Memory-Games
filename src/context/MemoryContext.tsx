@@ -16,6 +16,9 @@ import pineapple from "../assets/images/fruits/pineapple.png";
 import starfruit from "../assets/images/fruits/starfruit.png";
 import watermelon from "../assets/images/fruits/watermelon.png";
 
+// Import memory song
+import memorySong from "../assets/MemorySong.mp3";
+
 interface Card {
   id: number;
   fruit: string;
@@ -32,6 +35,8 @@ interface GameContextType {
   gameWon: boolean;
   restartGame: () => void;
   score: number;
+  startGame: () => void;
+  isGameStarted: boolean; // State to track if the game has started
 }
 
 interface GameContextProviderProps {
@@ -52,17 +57,12 @@ const GameContextProvider: React.FC<GameContextProviderProps> = ({
   const [timeLeft, setTimeLeft] = useState(45);
   const [gameOver, setGameOver] = useState(false);
   const [gameWon, setGameWon] = useState(false);
+  const [isGameStarted, setIsGameStarted] = useState(false); // Initialize game state
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [score, setScore] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const timerRef = useRef<number | null>(null);
-
-  // Helper function to shuffle an array
-  const shuffleArray = <T,>(array: T[]): T[] => {
-    return array.sort(() => Math.random() - 0.5);
-  };
-
-  // Initialize cards and set timer
-  useEffect(() => {
+  const initializeGame = () => {
     const fruitIcons: string[] = [
       apple,
       dragonfruit,
@@ -74,76 +74,106 @@ const GameContextProvider: React.FC<GameContextProviderProps> = ({
       watermelon,
     ];
 
-    const cardItems: Card[] = shuffleArray([...fruitIcons, ...fruitIcons]).map(
-      (fruit, index) => ({
-        id: index,
-        fruit,
-        flipped: false,
-      })
-    );
+    const pairIcons = [...fruitIcons, ...fruitIcons];
+    const shuffledIcons = pairIcons.sort(() => Math.random() - 0.5);
+
+    const cardItems: Card[] = shuffledIcons.map((fruit, index) => ({
+      id: index,
+      fruit,
+      flipped: false,
+    }));
 
     setCards(cardItems);
+    setShowIcons(true);
+    setIsGameStarted(true); // Mark game as started
 
-    // Show icons for 3 seconds initially
-    setTimeout(() => setShowIcons(false), 3000);
+    setTimeout(() => {
+      setShowIcons(false);
+    }, 3000);
 
-    // Start the countdown timer
-    timerRef.current = window.setInterval(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setTimeLeft(45);
+    timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          if (timerRef.current !== null) window.clearInterval(timerRef.current);
+          if (timerRef.current) clearInterval(timerRef.current);
           if (!gameWon) setGameOver(true);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+  };
 
+  const startGame = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(memorySong);
+    }
+    audioRef.current.currentTime = 0; // Reset audio to start
+    audioRef.current.play();
+    initializeGame();
+  };
+
+  useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (audioRef.current) audioRef.current.pause();
     };
-  }, [gameWon]);
+  }, []);
 
   const flipCard = (index: number) => {
-    if (flippedCards.length === 2) return;
+    if (flippedCards.length === 2 || cards[index].flipped) return;
 
     const updatedCards = [...cards];
     updatedCards[index].flipped = true;
     setCards(updatedCards);
 
-    const newFlippedCards = [...flippedCards, index];
-    setFlippedCards(newFlippedCards);
+    setFlippedCards((prevFlippedCards) => {
+      const newFlippedCards = [...prevFlippedCards, index];
 
-    if (newFlippedCards.length === 2) {
-      const [firstIndex, secondIndex] = newFlippedCards;
+      if (newFlippedCards.length === 2) {
+        const [firstIndex, secondIndex] = newFlippedCards;
 
-      if (updatedCards[firstIndex].fruit === updatedCards[secondIndex].fruit) {
-        const newMatchedPairs = [
-          ...matchedPairs,
-          updatedCards[firstIndex].fruit,
-        ];
-        setMatchedPairs(newMatchedPairs);
+        if (
+          updatedCards[firstIndex].fruit === updatedCards[secondIndex].fruit
+        ) {
+          const newMatchedPairs = [
+            ...matchedPairs,
+            updatedCards[firstIndex].fruit,
+          ];
+          setMatchedPairs(newMatchedPairs);
 
-        if (newMatchedPairs.length === cards.length / 2) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          setTimeout(() => setGameWon(true), 1000);
-          setScore(timeLeft * 10);
+          if (newMatchedPairs.length === cards.length / 2) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setTimeout(() => {
+              setGameWon(true);
+              setScore(timeLeft * 10);
+            }, 1000);
+          }
+        } else {
+          setTimeout(() => {
+            const resetCards = [...updatedCards];
+            resetCards[firstIndex].flipped = false;
+            resetCards[secondIndex].flipped = false;
+            setCards(resetCards);
+          }, 1000);
         }
-      } else {
-        setTimeout(() => {
-          const resetCards = [...updatedCards];
-          resetCards[firstIndex].flipped = false;
-          resetCards[secondIndex].flipped = false;
-          setCards(resetCards);
-        }, 1000);
+
+        return [];
       }
 
-      setFlippedCards([]);
-    }
+      return newFlippedCards;
+    });
   };
 
   const restartGame = () => {
-    window.location.reload();
+    setFlippedCards([]);
+    setMatchedPairs([]);
+    setGameOver(false);
+    setGameWon(false);
+    setScore(0);
+    setIsGameStarted(false); // Reset game state
+    initializeGame();
   };
 
   return (
@@ -158,6 +188,8 @@ const GameContextProvider: React.FC<GameContextProviderProps> = ({
         gameWon,
         restartGame,
         score,
+        startGame,
+        isGameStarted, // Provide game state
       }}
     >
       {children}
